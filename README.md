@@ -49,6 +49,10 @@ None
 
 ## Changelog
 
+### 1.0
+
+* initial release
+
 ## Author
 
 * [Simon Bärlocher](https://sbaerlocher.ch)
