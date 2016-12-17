@@ -1,0 +1,16 @@
+---
+- hosts: localhost
+  remote_user: root
+  vars:
+    veeam:
+      repo:
+        name: Lokal
+        path: /mnt
+      job:
+        name: Daily
+        repo: /mnt
+        restopoints: 7
+        day: Lokal
+        at: "20:00"
+  roles:
+    - ansible.veeam-agent

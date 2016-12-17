@@ -1,0 +1,21 @@
+---
+# defaults file for sbaerlocher.veeam-agent
+
+architecture: ansible_architecture == x86_64
+
+veeam:
+  vbrserver:
+    name:
+    endpoint:
+    login:
+    domain:
+    password:
+  repo:
+    name: 
+    path: 
+  job:
+    name:
+    repo: 
+    restopoints: 
+    day:
+    at: 
