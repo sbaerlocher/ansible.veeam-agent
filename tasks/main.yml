@@ -27,12 +27,14 @@
         repo: "deb http://repository.veeam.com/backup/linux/agent/dpkg/debian/{{ 'x86_64' if architecture else 'i386' }} noname veeam"
         state: present
         filename: veeam
+      register: veeam_deb_repo
     - apt_key:
         url: "http://repository.veeam.com/keys/VeeamSoftwareRepo"
         state: present
     - name: Update cache
       apt:
         update_cache: yes
+      when: veeam_deb_repo.changed
   when: ansible_distribution == 'Debian'
   tags:
     - packages
@@ -49,7 +51,7 @@
     register: veeam_vbrserver_list
   
   - name: create veeam B&R
-    command: "veeamconfig vbrserver create --name {{ veeam.vbrserver.name }} --endpoint {{ veeam.vbrserver.endpoint }} --login {{ veeam.vbrserver.login }} --domain {{ veeam.vbrserver.domain }} --password {{ veeam.vbrserver.password }}"
+    command: "veeamconfig vbrserver add --name {{ veeam.vbrserver.name }} --address {{ veeam.vbrserver.endpoint }} --login {{ veeam.vbrserver.login }} --domain {{ veeam.vbrserver.domain }} --password {{ veeam.vbrserver.password }}"
     register: veeam_create_repository
     when: veeam.vbrserver not in veeam_vbrserver_list.stdout 
   when: veeam.vbrserver.name is defined
@@ -70,6 +72,18 @@
   tags:
     - configuration
 
+- name: load repository list
+  command: "veeamconfig repository list"
+  register: veeam_repository_list
+  tags:
+    - configuration
+
+- name: load veeam repository name
+  set_fact:
+    veeam_repository_name: "{{ veeam_repository_list.stdout_lines.1.split(' ').0 | string }}"
+  tags:
+    - configuration
+
 - name: check if veeam job exist
   command: "veeamconfig job list"
   register: veeam_job_list
@@ -77,7 +91,7 @@
     - configuration
 
 - name: create veeam job
-  command: "veeamconfig job create --name {{ veeam.job.name }} --repoName {{ veeam.job.repo }} --maxPoints {{ veeam.job.restopoints }} --backupallsystem"
+  command: "veeamconfig job create --name {{ veeam.job.name }} --repoName {{  }} --maxPoints {{ veeam.job.restopoints }} --backupallsystem"
   register: veeam_create_job
   when: veeam.job.name not in veeam_job_list.stdout
   tags:
@@ -95,9 +109,11 @@
   tags:
     - configuration
 
+
 - name: check if veeam schedule exist
-  shell: "veeamconfig schedule show --jobId {{ veeam_job_id }} 2>/dev/null"
+  shell: "veeamconfig schedule show --jobId '{{ veeam_job_id }}' 2>/dev/null"
   register: veeam_schedule_show
+  ignore_errors: yes
   tags:
     - configuration
 

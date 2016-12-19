@@ -8,7 +8,6 @@
         path: /mnt
       job:
         name: Daily
-        repo: /mnt
         restopoints: 7
         day: Lokal
         at: "20:00"

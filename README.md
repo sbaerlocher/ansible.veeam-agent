@@ -29,7 +29,6 @@ veeam:
     path: 
   job:
     name:
-    repo: 
     restopoints: 
     day:
     at: 
