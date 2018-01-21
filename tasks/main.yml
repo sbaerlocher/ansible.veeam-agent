@@ -31,7 +31,8 @@
     - configuration
     - packages
 
-- package:
+- name: install veeam
+  package:
     name: veeam
   when: ansible_os_family == 'Linux'
   tags:
@@ -81,6 +82,7 @@
 
 - name: check if veeam job exist
   command: "veeamconfig job list"
+  when: ansible_os_family == 'Linux'
   register: veeam_job_list
   tags:
     - configuration
