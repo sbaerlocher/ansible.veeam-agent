@@ -1,0 +1,7 @@
+---
+# tasks file for sbaerlocher.veeam-agent
+
+- name: install veeam agent
+  win_chocolatey:
+    name: veeam-agent
+    source: https://chocolatey.org/api/v2/
