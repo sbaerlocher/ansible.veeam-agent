@@ -2,7 +2,7 @@
 # tasks file for sbaerlocher.veeam-agent
 
 - name: add OS specific variables
-  include_vars: "{{ item }}"
+  include_vars: "{{ loop_vars }}"
   with_first_found:
     - files:
         - "{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml"
@@ -12,12 +12,14 @@
         - "defaults.yml"
       paths:
         - "vars"
+  loop_control:
+    loop_var: loop_vars
   tags:
     - configuration
     - packages
 
 - name: include distribution tasks
-  include_tasks: "{{ item }}"
+  include_tasks: "{{ loop_distribution }}"
   with_first_found:
     - files:
         - "{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml"
@@ -27,6 +29,8 @@
         - "defaults.yml"
       paths:
         - "distribution"
+  loop_control:
+    loop_var: loop_distribution
   tags:
     - configuration
     - packages
