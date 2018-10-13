@@ -2,7 +2,7 @@
 # tasks file for sbaerlocher.veeam-agent
 
 - name: add OS specific variables
-  include_vars: "{{ item }}"
+  include_vars: "{{ loop_vars }}"
   with_first_found:
     - files:
         - "{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml"
@@ -12,12 +12,14 @@
         - "defaults.yml"
       paths:
         - "vars"
+  loop_control:
+    loop_var: loop_vars
   tags:
     - configuration
     - packages
 
 - name: include distribution tasks
-  include_tasks: "{{ item }}"
+  include_tasks: "{{ loop_distribution }}"
   with_first_found:
     - files:
         - "{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml"
@@ -27,6 +29,8 @@
         - "defaults.yml"
       paths:
         - "distribution"
+  loop_control:
+    loop_var: loop_distribution
   tags:
     - configuration
     - packages
@@ -48,7 +52,7 @@
       command: "veeamconfig vbrserver add --name {{ veeam.vbrserver.name }} --address {{ veeam.vbrserver.endpoint }} --login {{ veeam.vbrserver.login }} --domain {{ veeam.vbrserver.domain }} --password {{ veeam.vbrserver.password }}"
       register: veeam_create_repository
       when: veeam.vbrserver not in veeam_vbrserver_list.stdout
-  when: veeam.vbrserver.name is defined and  ansible_os_family == 'Linux'
+  when: veeam.vbrserver.name is defined and ansible_os_family == 'Linux'
   tags:
     - configuration
 
@@ -66,59 +70,41 @@
   tags:
     - configuration
 
-- name: load repository list
-  command: "veeamconfig repository list"
-  register: veeam_repository_list
+- block:
+    - name: load repository list
+      command: "veeamconfig repository list"
+      register: veeam_repository_list
+
+    - name: load veeam repository name
+      set_fact:
+        veeam_repository_name: "{{ veeam_repository_list.stdout_lines.1.split(' ').0 | string }}"
+
+    - name: check if veeam job exist
+      command: "veeamconfig job list"
+      when: ansible_os_family == 'Linux'
+      register: veeam_job_list
+
+    - name: create veeam job
+      command: "veeamconfig job create --name {{ veeam.job.name }} --repoName {{  }} --maxPoints {{ veeam.job.restopoints }} --backupallsystem"
+      register: veeam_create_job
+      when: 'veeam.job.name not in veeam_job_list.stdout'
+
+    - name: load veeam job info
+      command: "veeamconfig job info --name {{ veeam.job.name }}"
+      register: veeam_job_info
+
+    - name: load veeam Job id
+      set_fact:
+        veeam_job_id: "{{ veeam_job_info.stdout_lines.1 | regex_replace('   ID: ', '') | string }}"
+
+    - name: check if veeam schedule exist
+      shell: "veeamconfig schedule show --jobId '{{ veeam_job_id }}' 2>/dev/null"
+      register: veeam_schedule_show
+      ignore_errors: yes
+
+    - name: create veeam schedule
+      command: "veeamconfig schedule set --jobId {{ veeam_job_id }} --at {{ veeam.job.at | default('20:00') }} --daily"
+      when: "'Run automatically: enabled' not in veeam_schedule_show.stdout"
   when: ansible_os_family == 'Linux'
-  tags:
-    - configuration
-
-- name: load veeam repository name
-  set_fact:
-    veeam_repository_name: "{{ veeam_repository_list.stdout_lines.1.split(' ').0 | string }}"
-  when: ansible_os_family == 'Linux'
-  tags:
-    - configuration
-
-- name: check if veeam job exist
-  command: "veeamconfig job list"
-  when: ansible_os_family == 'Linux'
-  register: veeam_job_list
-  tags:
-    - configuration
-
-- name: create veeam job
-  command: "veeamconfig job create --name {{ veeam.job.name }} --repoName {{  }} --maxPoints {{ veeam.job.restopoints }} --backupallsystem"
-  register: veeam_create_job
-  when: veeam.job.name not in veeam_job_list.stdout and ansible_os_family == 'Linux'
-  tags:
-    - configuration
-
-- name: load veeam job info
-  command: "veeamconfig job info --name {{ veeam.job.name }}"
-  register: veeam_job_info
-  when: ansible_os_family == 'Linux'
-  tags:
-    - configuration
-
-- name: load veeam Job id
-  set_fact:
-    veeam_job_id: "{{ veeam_job_info.stdout_lines.1 | regex_replace('   ID: ', '') | string }}"
-  when: ansible_os_family == 'Linux'
-  tags:
-    - configuration
-
-
-- name: check if veeam schedule exist
-  shell: "veeamconfig schedule show --jobId '{{ veeam_job_id }}' 2>/dev/null"
-  register: veeam_schedule_show
-  when: ansible_os_family == 'Linux'
-  ignore_errors: yes
-  tags:
-    - configuration
-
-- name: create veeam schedule
-  command: "veeamconfig schedule set --jobId {{ veeam_job_id }} --at {{ veeam.job.at | default('20:00') }} --daily"
-  when: "'Run automatically: enabled' not in veeam_schedule_show.stdout and ansible_os_family == 'Linux'"
   tags:
     - configuration

@@ -1,10 +1,10 @@
 ---
 
 galaxy_info:
-  author: "Simon Bärlocher"
+  author: Simon Baerlocher <sbaerlocher@sbaerlocher.ch>
   description: Install and Configure Veeam Agent for linux on Debian, CentOS and Windows.
   license: MIT
-  min_ansible_version: 1.2
+  min_ansible_version: 2.5
   platforms:
     - name: Debian
       versions:
@@ -18,5 +18,8 @@ galaxy_info:
         - all
   galaxy_tags:
     - Veeam
+    - Backup
+    - Restore
+    - Agent
 
 dependencies: []
