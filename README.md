@@ -6,8 +6,8 @@ Install and Configure Veeam Agent for linux on Debian and CentOS.
 
 ## Installation
 
-```
-$ ansible-galaxy install sbaerlocher.veeam-agent
+```bash
+ansible-galaxy install sbaerlocher.veeam-agent
 ```
 
 ## Requirements
@@ -25,13 +25,13 @@ veeam:
     domain:
     password:
   repo:
-    name: 
-    path: 
+    name:
+    path:
   job:
     name:
-    restopoints: 
+    restopoints:
     day:
-    at: 
+    at:
 ```
 
 ## Dependencies
@@ -48,14 +48,18 @@ None
 
 ## Changelog
 
-### 1.0
+### 1.1.0
+
+* update new syntax
+
+### 1.0.0
 
 * initial release
 
 ## Author
 
 * [Simon Bärlocher](https://sbaerlocher.ch)
- 
+
 ## License
 
 This project is under the MIT License. See the [LICENSE](https://sbaerlo.ch/licence) file for the full license text.
