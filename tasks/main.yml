@@ -52,7 +52,7 @@
       command: "veeamconfig vbrserver add --name {{ veeam.vbrserver.name }} --address {{ veeam.vbrserver.endpoint }} --login {{ veeam.vbrserver.login }} --domain {{ veeam.vbrserver.domain }} --password {{ veeam.vbrserver.password }}"
       register: veeam_create_repository
       when: veeam.vbrserver not in veeam_vbrserver_list.stdout
-  when: veeam.vbrserver.name is defined and  ansible_os_family == 'Linux'
+  when: veeam.vbrserver.name is defined and ansible_os_family == 'Linux'
   tags:
     - configuration
 
