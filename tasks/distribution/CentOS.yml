@@ -1,0 +1,13 @@
+---
+# tasks file for sbaerlocher.veeam-agent
+
+- name: CentOS | add veeam repository yum
+  yum_repository:
+    name: veeam
+    description: "Veeam Backup for GNU/Linux - $basearch"
+    baseurl: "http://repository.veeam.com/backup/linux/agent/rpm/el/{{ ansible_distribution_major_version }}/{{ 'x86_64' if architecture else 'i386' }}"
+    gpgcheck: true
+    gpgkey: "http://repository.veeam.com/keys/RPM-GPG-KEY-VeeamSoftwareRepo http://repository.veeam.com/keys/VeeamSoftwareRepo"
+    enabled: true
+  tags:
+    - packages

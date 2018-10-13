@@ -1,0 +1,18 @@
+---
+# tasks file for sbaerlocher.veeam-agent
+
+- name: Debian | add veeam key
+  apt_key:
+    url: "http://repository.veeam.com/keys/VeeamSoftwareRepo"
+    state: present
+  tags:
+    - packages
+
+- name: Debian | add veeam repository
+  apt_repository:
+    repo: "deb http://repository.veeam.com/backup/linux/agent/dpkg/debian/{{ 'x86_64' if architecture else 'i386' }} noname veeam"
+    state: present
+    filename: veeam
+    update_cache: true
+  tags:
+    - packages

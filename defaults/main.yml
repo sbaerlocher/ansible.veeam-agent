@@ -11,10 +11,10 @@ veeam:
     domain:
     password:
   repo:
-    name: 
-    path: 
+    name:
+    path:
   job:
     name:
-    restopoints: 
+    restopoints:
     day:
-    at: 
+    at:

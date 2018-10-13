@@ -2,123 +2,109 @@
 # tasks file for sbaerlocher.veeam-agent
 
 - name: add OS specific variables
-  include_vars: "{{ item }}"
+  include_vars: "{{ loop_vars }}"
   with_first_found:
-    - "vars/{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
-    - "vars/{{ ansible_distribution }}.yml"
-    - "vars/{{ ansible_os_family }}.yml"
-    - "vars/defaults.yml"
+    - files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml"
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+        - "defaults.yml"
+      paths:
+        - "vars"
+  loop_control:
+    loop_var: loop_vars
+  tags:
+    - configuration
+    - packages
 
-- name: add veeam repository yum
-  yum_repository:
+- name: include distribution tasks
+  include_tasks: "{{ loop_distribution }}"
+  with_first_found:
+    - files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml"
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+        - "defaults.yml"
+      paths:
+        - "distribution"
+  loop_control:
+    loop_var: loop_distribution
+  tags:
+    - configuration
+    - packages
+
+- name: install veeam
+  package:
     name: veeam
-    description: "Veeam Backup for GNU/Linux - $basearch"
-    baseurl: "http://repository.veeam.com/backup/linux/agent/rpm/el/{{ ansible_distribution_major_version }}/{{ 'x86_64' if architecture else 'i386' }}"
-    gpgcheck: yes
-    gpgkey: "http://repository.veeam.com/keys/RPM-GPG-KEY-VeeamSoftwareRepo http://repository.veeam.com/keys/VeeamSoftwareRepo"
-    enabled: yes
-  when: ansible_distribution == 'CentOS'
+  when: ansible_os_family == 'Linux'
   tags:
     - packages
 
+# Veeam Backup & Replication
 - block:
-    - name: add veeam repository deb
-      apt_repository:
-        repo: "deb http://repository.veeam.com/backup/linux/agent/dpkg/debian/{{ 'x86_64' if architecture else 'i386' }} noname veeam"
-        state: present
-        filename: veeam
-      register: veeam_deb_repo
-    - apt_key:
-        url: "http://repository.veeam.com/keys/VeeamSoftwareRepo"
-        state: present
-    - name: Update cache
-      apt:
-        update_cache: yes
-      when: veeam_deb_repo.changed
-  when: ansible_distribution == 'Debian'
-  tags:
-    - packages
+    - name: check if veeam B&R exist
+      command: veeamconfig vbrserver list
+      register: veeam_vbrserver_list
 
-- package: 
-    name: veeam
+    - name: create veeam B&R
+      command: "veeamconfig vbrserver add --name {{ veeam.vbrserver.name }} --address {{ veeam.vbrserver.endpoint }} --login {{ veeam.vbrserver.login }} --domain {{ veeam.vbrserver.domain }} --password {{ veeam.vbrserver.password }}"
+      register: veeam_create_repository
+      when: veeam.vbrserver not in veeam_vbrserver_list.stdout
+  when: veeam.vbrserver.name is defined and ansible_os_family == 'Linux'
   tags:
-    - packages
+    - configuration
 
-## Veeam Backup & Replication
+# Veeam local
 - block:
-  - name: check if veeam B&R exist
-    command: veeamconfig vbrserver list
-    register: veeam_vbrserver_list
-  
-  - name: create veeam B&R
-    command: "veeamconfig vbrserver add --name {{ veeam.vbrserver.name }} --address {{ veeam.vbrserver.endpoint }} --login {{ veeam.vbrserver.login }} --domain {{ veeam.vbrserver.domain }} --password {{ veeam.vbrserver.password }}"
-    register: veeam_create_repository
-    when: veeam.vbrserver not in veeam_vbrserver_list.stdout 
-  when: veeam.vbrserver.name is defined
+    - name: check if veeam repo exist
+      command: veeamconfig repository list
+      register: veeam_repository_list
+
+    - name: create veeam repo
+      command: "veeamconfig repository create --name {{ veeam.repo.name }} --location {{ veeam.repo.path }}"
+      register: veeam_create_repository
+      when: veeam.repo.name not in veeam_repository_list.stdout
+  when: veeam.repo.name is defined and ansible_os_family == 'Linux'
   tags:
     - configuration
 
-##Veeam local
 - block:
-  - name: check if veeam repo exist
-    command: veeamconfig repository list
-    register: veeam_repository_list
-  
-  - name: create veeam repo
-    command: "veeamconfig repository create --name {{ veeam.repo.name }} --location {{ veeam.repo.path }}"
-    register: veeam_create_repository
-    when: veeam.repo.name not in veeam_repository_list.stdout
-  when: veeam.repo.name is defined
-  tags:
-    - configuration
+    - name: load repository list
+      command: "veeamconfig repository list"
+      register: veeam_repository_list
 
-- name: load repository list
-  command: "veeamconfig repository list"
-  register: veeam_repository_list
-  tags:
-    - configuration
+    - name: load veeam repository name
+      set_fact:
+        veeam_repository_name: "{{ veeam_repository_list.stdout_lines.1.split(' ').0 | string }}"
 
-- name: load veeam repository name
-  set_fact:
-    veeam_repository_name: "{{ veeam_repository_list.stdout_lines.1.split(' ').0 | string }}"
-  tags:
-    - configuration
+    - name: check if veeam job exist
+      command: "veeamconfig job list"
+      when: ansible_os_family == 'Linux'
+      register: veeam_job_list
 
-- name: check if veeam job exist
-  command: "veeamconfig job list"
-  register: veeam_job_list
-  tags:
-    - configuration
+    - name: create veeam job
+      command: "veeamconfig job create --name {{ veeam.job.name }} --repoName {{  }} --maxPoints {{ veeam.job.restopoints }} --backupallsystem"
+      register: veeam_create_job
+      when: 'veeam.job.name not in veeam_job_list.stdout'
 
-- name: create veeam job
-  command: "veeamconfig job create --name {{ veeam.job.name }} --repoName {{  }} --maxPoints {{ veeam.job.restopoints }} --backupallsystem"
-  register: veeam_create_job
-  when: veeam.job.name not in veeam_job_list.stdout
-  tags:
-    - configuration
+    - name: load veeam job info
+      command: "veeamconfig job info --name {{ veeam.job.name }}"
+      register: veeam_job_info
 
-- name: load veeam job info
-  command: "veeamconfig job info --name {{ veeam.job.name }}"
-  register: veeam_job_info
-  tags:
-    - configuration
+    - name: load veeam Job id
+      set_fact:
+        veeam_job_id: "{{ veeam_job_info.stdout_lines.1 | regex_replace('   ID: ', '') | string }}"
 
-- name: load veeam Job id
-  set_fact:
-    veeam_job_id: "{{ veeam_job_info.stdout_lines.1 | regex_replace('   ID: ', '') | string }}"
-  tags:
-    - configuration
+    - name: check if veeam schedule exist
+      shell: "veeamconfig schedule show --jobId '{{ veeam_job_id }}' 2>/dev/null"
+      register: veeam_schedule_show
+      ignore_errors: yes
 
-
-- name: check if veeam schedule exist
-  shell: "veeamconfig schedule show --jobId '{{ veeam_job_id }}' 2>/dev/null"
-  register: veeam_schedule_show
-  ignore_errors: yes
-  tags:
-    - configuration
-
-- name: create veeam schedule
-  command: "veeamconfig schedule set --jobId {{ veeam_job_id }} --at {{ veeam.job.at | default('20:00') }} --daily"
-  when: "'Run automatically: enabled' not in veeam_schedule_show.stdout"
+    - name: create veeam schedule
+      command: "veeamconfig schedule set --jobId {{ veeam_job_id }} --at {{ veeam.job.at | default('20:00') }} --daily"
+      when: "'Run automatically: enabled' not in veeam_schedule_show.stdout"
+  when: ansible_os_family == 'Linux'
   tags:
     - configuration
