@@ -1,6 +1,6 @@
 # Ansible Role: Veeam Agent
 
-[![Build Status](https://travis-ci.org/sbaerlocher/ansible.veeam-agent.svg?branch=master)](https://travis-ci.org/sbaerlocher/ansible.veeam-agent) [![license](https://img.shields.io/github/license/mashape/apistatus.svg)](https://sbaerlo.ch/licence) [![Ansible Galaxy](http://img.shields.io/badge/ansible--galaxy-veeam-agent-blue.svg)](https://galaxy.ansible.com/sbaerlocher/veeam-agent)
+[![Build Status](https://travis-ci.org/sbaerlocher/ansible.veeam-agent.svg?branch=master)](https://travis-ci.org/sbaerlocher/ansible.veeam-agent) [![license](https://img.shields.io/github/license/mashape/apistatus.svg)](https://sbaerlo.ch/licence) [![Ansible Galaxy](http://img.shields.io/badge/ansible--galaxy-veeam--agent-blue.svg)](https://galaxy.ansible.com/sbaerlocher/veeam-agent)
 
 ## Description
 
